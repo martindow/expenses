@@ -5,26 +5,25 @@
 ;; Krakow Euroclojure Expenses
 ;; ---------------------------
 
-;; (expenses
-;;  "Accomodation": M -> GBP278 -> [M P D L G]
-;;  "Taxi": L -> PLN100 -> [M D L G]
-;;  "Beer & Pizza": M -> PLN150 -> [M G D L]
-;;  "Coffee": G -> PLN26 -> [G D L]
-;;  "Beer for home": L -> PLN32 -> [M D L G]
-;;  "Supermaket": M -> PLN40 -> [M D L G P]
-;;  "Dinner": D -> PLN200 -> [M D L]
-;;  "Dinner": D -> PLN200 -> [M D L G]
-;;  "Dinner": M -> PLN20 -> [M D L G]
-;;  "Beer": G -> PLN70 -> [M D L G P]
-;;  "Beer": D -> PLN50 -> [M D L G P]
-;;  "Beer": P -> PLN10 -> [M D L G P]
-;;  "Breakfast": P -> PLN69 -> [M D P]
-;;  "Shakes": P -> PLN55 -> [M D P L]
-;;  "Shakes": L -> PLN25 -> [M D P L]
-;;  "Shopping": P -> PLN20 -> [M D P L]
-;;  "Pizza": M -> PLN89 -> [M P D L]
-;;  "Shopping": L -> PLN29 -> [M P D L]
-;;  )
+(expenses
+ "Accomodation" M -> GBP278 -> [M P D L G]
+ "Taxi" L -> PLN100 -> [M D L G]
+ "Beer & Pizza" M -> PLN150 -> [M G D L]
+ "Coffee" G -> PLN26 -> [G D L]
+ "Beer for home" L -> PLN32 -> [M D L G]
+ "Supermaket" M -> PLN40 -> [M D L G P]
+ "Dinner" D -> PLN200 -> [M D L]
+ "Dinner" D -> PLN200 -> [M D L G]
+ "Dinner" M -> PLN20 -> [M D L G]
+ "Beer" G -> PLN70 -> [M D L G P]
+ "Beer" D -> PLN50 -> [M D L G P]
+ "Beer" P -> PLN10 -> [M D L G P]
+ "Breakfast" P -> PLN69 -> [M D P]
+ "Shakes" P -> PLN55 -> [M D P L]
+ "Shakes" L -> PLN25 -> [M D P L]
+ "Shopping" P -> PLN20 -> [M D P L]
+ "Pizza" M -> PLN89 -> [M P D L]
+ "Shopping" L -> PLN29 -> [M P D L])
 
 ;; ---------------------------
 ;; M: Martin
