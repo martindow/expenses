@@ -22,6 +22,8 @@
 ;;  "Shakes": P -> PLN55 -> [M D P L]
 ;;  "Shakes": L -> PLN25 -> [M D P L]
 ;;  "Shopping": P -> PLN20 -> [M D P L]
+;;  "Pizza": M -> PLN89 -> [M P D L]
+;;  "Shopping": L -> PLN29 -> [M P D L]
 ;;  )
 
 ;; ---------------------------
