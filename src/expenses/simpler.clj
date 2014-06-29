@@ -1,27 +1,25 @@
 (ns expenses.simpler
   (:require [clojure.algo.generic.functor :refer [fmap]]))
 
+(defmacro expenses
+  "Just convert to appropriate data structure, process with fns."
+  [& xs]
+  (vec (for [[label payer _ value _ beneficiaries] (partition 6 xs)]
+         (let [[_ currency amount] (first (re-seq #"(\D{3})(\d+)" (name value)))]
+           {:label label
+            :payer (str payer)
+            :currency currency
+            :amount (Double/parseDouble amount)
+            :beneficiaries (vec (map str beneficiaries))}))))
+
 (defn convert
   "Convert everything to GBP."
   [currency amount]
-  (condp = currency
+  (case currency
     "PLN" (/ amount 5)
     "GBP" amount))
 
 ;; Payments are map with keys - :payer, :beneficiaries, :currency, :amount
-(def input
- [{:payer "M"
-   :beneficiaries ["M" "D" "P"]
-   :currency "GBP"
-   :amount 300}
-  {:payer "D"
-   :beneficiaries ["M" "D" "P"]
-   :currency "PLN"
-   :amount 858}
-  {:payer "P"
-   :beneficiaries ["M" "P"]
-   :currency "GBP"
-   :amount 50}])
 
 ;; Movements are simple vectors showing a +ve or -ve cash movement 
 ;; e.g. [["M" "D"] 20] is movement of 20 from M to D
@@ -53,7 +51,34 @@ reverse the net movements described."
        (reduce #(merge-with + %1 %2)) ; reduce to accumulate
        (fmap -))) ; negative for compensating payment
 
-(defn report [movements]
-  (for [[[from to] amount] movements]
-    (str from " owes " to " GBP " amount)))
+(defn report
+  "Generate human readable description of seq of required cash movements."
+  [movements]
+  (sort
+   (for [[[from to] amount] movements]
+     (if (pos? amount)
+       (str from " owes " to " GBP " (format "%.2f" amount))
+       (str to " owes " from " GBP " (format "%.2f" (- amount)))))))
 
+(comment
+  (def tally (expenses
+              "Accomodation" M -> GBP278 -> [M P D L G]
+              "Taxi" L -> PLN100 -> [M D L G]
+              "Beer & Pizza" M -> PLN150 -> [M G D L]
+              "Coffee" G -> PLN26 -> [G D L]
+              "Beer for home" L -> PLN32 -> [M D L G]
+              "Supermaket" M -> PLN40 -> [M D L G P]
+              "Dinner" D -> PLN200 -> [M D L]
+              "Dinner" D -> PLN200 -> [M D L G]
+              "Dinner" M -> PLN20 -> [M D L G]
+              "Beer" G -> PLN70 -> [M D L G P]
+              "Beer" D -> PLN50 -> [M D L G P]
+              "Beer" P -> PLN10 -> [M D L G P]
+              "Breakfast" P -> PLN69 -> [M D P]
+              "Shakes" P -> PLN55 -> [M D P L]
+              "Shakes" L -> PLN25 -> [M D P L]
+              "Shopping" P -> PLN20 -> [M D P L]
+              "Pizza" M -> PLN89 -> [M P D L]
+              "Shopping" L -> PLN29 -> [M P D L]))
+
+  (report (calculate-compensating-movements tally)))
