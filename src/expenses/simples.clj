@@ -57,7 +57,7 @@
                            :amount amount
                            :label label}))
         input (map build-payment rows)]
-    (list 'report-expenses (vec input))))
+    `(report-expenses ~(vec input))))
 
 (println (expenses
           "Accomodation" M -> GBP278 -> [M P D L G]
