@@ -1,135 +1,94 @@
 (ns expenses.core
-    (:require [clojure.algo.generic.functor :refer [fmap]]))
+  (:require [clojure.algo.generic.functor :refer [fmap]]))
 
-;; ---------------------------
-;; Krakow Euroclojure Expenses
-;; ---------------------------
+(defmacro expenses
+  "Just convert to appropriate data structure, process with fns."
+  [& xs]
+  (vec (for [[label payer _ value _ beneficiaries] (partition 6 xs)]
+         (let [[_ currency amount] (first (re-seq #"(\D{3})(\d+)" (name value)))]
+           {:label label
+            :payer (str payer)
+            :currency currency
+            :amount (Double/parseDouble amount)
+            :beneficiaries (vec (map str beneficiaries))}))))
 
-(expenses
- "Accomodation" M -> GBP278 -> [M P D L G]
- "Taxi" L -> PLN100 -> [M D L G]
- "Beer & Pizza" M -> PLN150 -> [M G D L]
- "Coffee" G -> PLN26 -> [G D L]
- "Beer for home" L -> PLN32 -> [M D L G]
- "Supermaket" M -> PLN40 -> [M D L G P]
- "Dinner" D -> PLN200 -> [M D L]
- "Dinner" D -> PLN200 -> [M D L G]
- "Dinner" M -> PLN20 -> [M D L G]
- "Beer" G -> PLN70 -> [M D L G P]
- "Beer" D -> PLN50 -> [M D L G P]
- "Beer" P -> PLN10 -> [M D L G P]
- "Breakfast" P -> PLN69 -> [M D P]
- "Shakes" P -> PLN55 -> [M D P L]
- "Shakes" L -> PLN25 -> [M D P L]
- "Shopping" P -> PLN20 -> [M D P L]
- "Pizza" M -> PLN89 -> [M P D L]
- "Shopping" L -> PLN29 -> [M P D L])
+(defn convert
+  "Convert everything to GBP."
+  [currency amount]
+  (case currency
+    "PLN" (/ amount 5)
+    "GBP" amount))
 
-;; ---------------------------
-;; M: Martin
-;; L: Lloyd
-;; G: Greg
-;; D: Dan
-;; P: Paddy
-;; ---------------------------
+;; Payments are map with keys - :payer, :beneficiaries, :currency, :amount
 
-(def payments
- [{:payer "M"
-   :beneficiaries ["M" "D" "P"]
-   :currency "GBP"
-   :amount 150}
-  {:payer "D"
-   :beneficiaries ["M" "D" "P"]
-   :currency "GBP"
-   :amount 150}
-  {:payer "P"
-   :beneficiaries ["M" "P"]
-   :currency "GBP"
-   :amount 50}])
+;; Movements are simple vectors showing a +ve or -ve cash movement
+;; e.g. [["M" "D"] 20] is movement of 20 from M to D
 
-(defn payment-splitter [payment]
-  (fn [beneficiary]
-    (dissoc
-     (assoc payment
-       :amount (/ (:amount payment) (count (:beneficiaries payment)))
-       :beneficiary beneficiary)
-     :beneficiaries)))
+(defn normalise-movement
+  "Ensure that we track both directions of movement against same key.
+e.g instead of [[M P] 20] and [[P M] 10] we just have [[M P] 10]."
+  [[[from to] amount :as movement]]
+  (if (neg? (compare from to))
+    [[to from] (- amount)]
+    movement))
 
-(defn splat-payments [payments]
-  (mapcat (fn [payment]
-            (map (payment-splitter payment)
-                 (:beneficiaries payment)))
-          payments))
+(defn payment->movements
+  "Convert single payment in input format to seq of movements of the
+form [[from to] amount]."
+  [{:keys [payer beneficiaries currency amount]}]
+  (let [share (convert currency (/ amount (count beneficiaries)))]
+    (remove nil?
+            (for [b beneficiaries :when (not= b payer)]
+              (normalise-movement [[payer b] share])))))
 
-(defn accumulate-amounts [role payments]
-    (fmap #(apply + (map :amount %)) (group-by role payments)))
+(defn calculate-compensating-movements
+  "Turn input vector into vector of compensating movements needed to
+reverse the net movements described."
+  [input]
+  (->> input
+       (mapcat payment->movements) ; [ [["M" "P"] 30] [["M" "G"] 26] ... ]
+       (map (partial apply hash-map)) ; turn each into a single element map for merging
+       (reduce #(merge-with + %1 %2)) ; reduce to accumulate
+       (fmap -))) ; negative for compensating payment
 
-(def accumulate-amounts-paid
-  (partial accumulate-amounts :payer))
+(defn report
+  "Generate human readable description of seq of required cash movements."
+  [movements]
+  (sort
+   (for [[[from to] amount] movements]
+     (if (pos? amount)
+       (str from " owes " to " GBP " (format "%.2f" amount))
+       (str to " owes " from " GBP " (format "%.2f" (- amount)))))))
 
-(def accumulate-amounts-received
-  (partial accumulate-amounts :beneficiary))
 
-(defn calculate-balances  [payments]
-  (let [splat-payments (splat-payments payments)
-        amounts-paid (accumulate-amounts-paid splat-payments)
-        amounts-received (accumulate-amounts-received splat-payments)]
-    (merge-with + amounts-paid (fmap - amounts-received))))
+(def krakow (expenses
+  "Accomodation" M -> GBP278 -> [M P D L G]
+  "Taxi" L -> PLN100 -> [M D L G]
+  "Beer & Pizza" M -> PLN150 -> [M G D L]
+  "Coffee" G -> PLN26 -> [G D L]
+  "Beer for home" L -> PLN32 -> [M D L G]
+  "Supermaket" M -> PLN40 -> [M D L G P]
+  "Dinner" D -> PLN200 -> [M D L]
+  "Dinner" D -> PLN200 -> [M D L G]
+  "Dinner" M -> PLN20 -> [M D L G]
+  "Beer" G -> PLN70 -> [M D L G P]
+  "Beer" D -> PLN50 -> [M D L G P]
+  "Beer" P -> PLN10 -> [M D L G P]
+  "Breakfast" P -> PLN69 -> [M D P]
+  "Shakes" P -> PLN55 -> [M D P L]
+  "Shakes" L -> PLN25 -> [M D P L]
+  "Shopping" P -> PLN20 -> [M D P L]
+  "Pizza" M -> PLN89 -> [M P D L]
+  "Shopping" L -> PLN29 -> [M P D L]))
 
-;; Split into 2 lists
+(def zook (expenses
+  "Sheerness accomodation" M -> GBP282 -> [D L P M]
+  "Sheerness shopping" M -> GBP34 -> [D L P M]
+  "Sheerness shopping" P -> GBP11 -> [D L P M]
+  "Train tickes to Sheerness" L -> GBP68 -> [D L P M]
+  "Unity theme from wrapstrap.com" M -> GBP12.5 -> [D L P M]
+  "Abington accomodation" M -> GBP367 -> [D L P M]
+  "Sunday pub lunch(abington)" L -> GBP50 -> [D L P M]))
 
-(defn owed [balances] (filter (comp pos? second) balances))
-(defn owing [balances] (filter (comp neg? second) balances))
-
-(defn reconcilliation [ower owed amount]
-  {:ower ower :owed owed :amount amount})
-
-(defn reconcile [payments]
-  (println "payments> " payments)
-  (let [balances (calculate-balances payments)]
-    (println "balances> " balances)
-    (loop [remaining-owed (seq (owed balances))
-           owing (map #(update-in % [1] -) (owing balances)) ;; e.g. ([D 1834/15] [L 1834/15] [P 278/5])
-           result []]
-      (println "reconcile> " remaining-owed " // " owing " // " result)
-      (if-let [next-owed (first remaining-owed)] ;; e.g. [M 1112/5]
-        (do
-          (println " - next-owed: " next-owed)
-          (let [total-owing-so-far-seq (reductions + (map second owing))
-                owing-with-total-owed-so-far (map vector total-owing-so-far-seq owing)
-                ;; e.g. owing-with-total-owed-so-far:
-                ;; ([1834/15 [D 1834/15]] [3668/15 [L 1834/15]] [4502/15 [P 278/5]])
-                not-enough-to-pay-off-owed #(< (first %) (second next-owed))
-                fully-paid-up (take-while not-enough-to-pay-off-owed owing-with-total-owed-so-far)
-                not-fully-paid-up (drop-while not-enough-to-pay-off-owed owing-with-total-owed-so-far)
-                paying-remainder (first not-fully-paid-up)
-                not-paying-this-time (next not-fully-paid-up)
-                next-result (let [new-reconcilliations (map reconcilliation
-                                                            (map (comp first second) fully-paid-up)
-                                                            (repeatedly #(first next-owed))
-                                                            (map (comp second second) fully-paid-up))]
-                              (if (not (empty? new-reconcilliations))
-                                (apply conj result new-reconcilliations)
-                                result))
-                remainder (- (first paying-remainder) (second next-owed))
-                next-result (conj next-result (reconcilliation (first (second paying-remainder))
-                                                               (first next-owed)
-                                                               (- (second (second paying-remainder)) remainder)))]
-            (println " - paying-remainder: " paying-remainder " // remainder: " remainder)
-            (recur (next remaining-owed)
-                   (if (> remainder 0)
-                     (conj (map second not-paying-this-time) (update-in (second paying-remainder) [1] #(- % remainder)))
-                     (map second not-paying-this-time))
-                   next-result)))
-        result))))
-
-;;=> [ {:owed G :ower P :amount 23} {:owed G :ower M :amount 23} ]
-
-;; (defn -main []
-;;   (splat-payments payments))
-
-  ;; [{G [:paid 234 :received] 67567
-  ;;   D []}]
-
-  ;;[ "Martin owes Greg GBP27.83"
-  ;;  "Dan owes Lloyd GBP36.87"]
+(comment
+  (report (calculate-compensating-movements tally)))
