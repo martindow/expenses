@@ -87,6 +87,7 @@ reverse the net movements described."
   "Sheerness shopping" P -> GBP11 -> [D L P M]
   "Train tickes to Sheerness" L -> GBP68 -> [D L P M]
   "Unity theme from wrapstrap.com" M -> GBP12.5 -> [D L P M]
+  "Train to Abington" L -> GBP40.65 -> [L D M]
   "Abington accomodation" M -> GBP367 -> [D L P M]
   "Sunday pub lunch(abington)" L -> GBP50 -> [D L P M]))
 
