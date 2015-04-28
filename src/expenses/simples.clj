@@ -78,3 +78,27 @@
           "Shopping" P -> PLN20 -> [M D P L]
           "Pizza" M -> PLN89 -> [M P D L]
           "Shopping" L -> PLN29 -> [M P D L]))
+
+(def ramsgate (expenses
+   "Train tickets to Ramsgate" D -> GBP81 -> [M P D]
+   "Caboose Cafe Lunch" D -> GBP39 -> [M P L D]
+   "Steak dinner n booze" D -> GBP78 -> [M P L D]
+   "Monday Brunch" D -> GBP15 -> [M P L D]
+   "Curry night" L -> GBP101 -> [M P D L]
+   "Burger @ Canonbury" D -> GBP21 -> [P D]
+   "Accommodation" M -> GBP429 -> [D L P M]
+   "Waitrose supplies" M -> GBP21.84 -> [D L P M]
+   "Beers at home" M -> GBP10 -> [D L P M]
+   "Lunch in the wee place" M -> GBP26.20 -> [D L P M]))
+
+(def zook (expenses
+  "Sheerness accomodation" M -> GBP282 -> [D L P M]
+  "Sheerness shopping" M -> GBP34 -> [D L P M]
+  "Sheerness shopping" P -> GBP11 -> [D L P M]
+  "Train tickes to Sheerness" L -> GBP68 -> [D L P M]
+  "Unity theme from wrapstrap.com" M -> GBP12.5 -> [D L P M]
+  "Train to Abington" L -> GBP40.65 -> [L D M]
+  "Abington accomodation" M -> GBP367 -> [D L P M]
+  "Sunday pub lunch(abington)" L -> GBP50 -> [D L P M]))
+
+(println ramsgate)
